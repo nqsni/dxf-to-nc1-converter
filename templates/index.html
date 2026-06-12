@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NC1 Converter — Bukaka</title>
+<style>
+/* ── Tokens ── */
+:root {
+  --bg:         #0d1117;
+  --surface:    #111827;
+  --card:       #1a2236;
+  --card-hover: #1e2840;
+  --border:     #243049;
+  --border-hi:  #2e3d60;
+  --text:       #e2e8f0;
+  --muted:      #64748b;
+  --blue:       #007ac1;
+  --blue-dim:   #005a8e;
+  --blue-glow:  rgba(0,122,193,.15);
+  --orange:     #f97316;
+  --orange-dim: #c45c0e;
+  --orange-glow:rgba(249,115,22,.12);
+  --error:      #f87171;
+  --error-bg:   rgba(248,113,113,.08);
+  --mono:       'JetBrains Mono','Fira Mono','Courier New',monospace;
+  --sans:       'Inter',system-ui,sans-serif;
+  --radius:     10px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  height: 60px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+.logo-fallback {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--blue);
+  letter-spacing: -0.5px;
+}
+.divider-v {
+  width: 1px; height: 22px;
+  background: var(--border);
+}
+.app-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.app-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  background: var(--blue-glow);
+  color: var(--blue);
+  border: 1px solid rgba(0,122,193,.3);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+/* ── Main layout ── */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 0;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── Panel ── */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.panel-header {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--muted);
+}
+.panel-body { padding: 22px; }
+
+/* ── Drop zone ── */
+.dropzone {
+  position: relative;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  margin-bottom: 20px;
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--blue);
+  background: var(--blue-glow);
+}
+.dropzone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+.dz-icon {
+  width: 40px; height: 40px;
+  border: 2px solid var(--border-hi);
+  border-radius: 9px;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.dz-icon svg { width: 20px; height: 20px; stroke: var(--muted); fill: none; stroke-width: 1.8; }
+.dz-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.dz-hint  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* File list */
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.file-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text);
+}
+.file-chip .chip-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip .chip-remove {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  border: none; background: none;
+  padding: 0 2px;
+  transition: color .15s;
+}
+.file-chip .chip-remove:hover { color: var(--error); }
+.file-chip.chip-dxf::before {
+  content: 'DXF';
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--blue-glow);
+  color: var(--blue);
+  border: 1px solid rgba(0,122,193,.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+/* ── Fields ── */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.full { grid-column: 1/-1; }
+label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  font-size: 10px;
+  margin-left: 4px;
+}
+input, select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  width: 100%;
+}
+input:focus, select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-glow);
+}
+select option { background: var(--surface); }
+
+/* ── Convert button ── */
+.btn-convert {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background .15s, transform .1s;
+  letter-spacing: .2px;
+}
+.btn-convert:hover:not(:disabled) { background: var(--blue-dim); }
+.btn-convert:active:not(:disabled) { transform: scale(.98); }
+.btn-convert:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Result panel right side ── */
+.result-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Empty state */
+.state-empty {
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 72px 30px;
+  text-align: center;
+  color: var(--muted);
+}
+.empty-icon {
+  width: 52px; height: 52px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: .5;
+}
+.empty-icon svg { width: 26px; height: 26px; stroke: var(--muted); fill: none; stroke-width: 1.5; }
+.state-empty p { font-size: 13px; }
+
+/* ── Result card per file ── */
+.result-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  animation: fadeIn .25s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+.result-card.is-error { border-color: rgba(248,113,113,.3); }
+
+.result-top {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.result-status {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.result-status.ok  { background: var(--orange-glow); }
+.result-status.err { background: var(--error-bg); }
+.result-status svg { width: 15px; height: 15px; fill: none; stroke-width: 2.5; }
+.result-status.ok  svg { stroke: var(--orange); }
+.result-status.err svg { stroke: var(--error); }
+
+.result-name { flex: 1; min-width: 0; }
+.result-filename {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.result-orig { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.btn-dl {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.btn-dl:hover { background: var(--orange-dim); }
+.btn-dl svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 2.5; }
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+.stat {
+  padding: 12px 16px;
+  border-right: 1px solid var(--border);
+}
+.stat:last-child { border-right: none; }
+.stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+.stat-val {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--orange);
+}
+
+/* Preview */
+.preview-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  padding: 10px 18px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .15s;
+}
+.preview-toggle:hover { color: var(--text); }
+.preview-toggle svg {
+  width: 13px; height: 13px;
+  stroke: currentColor; fill: none; stroke-width: 2;
+  transition: transform .2s;
+}
+.preview-toggle.open svg { transform: rotate(180deg); }
+.preview-content {
+  display: none;
+  border-top: 1px solid var(--border);
+}
+.preview-content.open { display: block; }
+pre {
+  padding: 16px 18px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--text);
+  overflow-x: auto;
+  max-height: 320px;
+  overflow-y: auto;
+  white-space: pre;
+  background: var(--surface);
+}
+
+/* Error message in card */
+.error-msg {
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--error);
+}
+
+/* Global error */
+.global-error {
+  display: none;
+  background: var(--error-bg);
+  border: 1px solid rgba(248,113,113,.25);
+  border-radius: var(--radius);
+  padding: 13px 16px;
+  color: var(--error);
+  font-size: 13px;
+  gap: 8px;
+  align-items: flex-start;
+}
+.global-error.show { display: flex; }
+
+/* Download all bar */
+.dl-all-bar {
+  display: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dl-all-bar.show { display: flex; }
+.dl-all-info { font-size: 13px; color: var(--muted); }
+.dl-all-info strong { color: var(--text); }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 820px) {
+  main { grid-template-columns: 1fr; padding: 16px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .stat:nth-child(2) { border-right: none; }
+  header { padding: 0 18px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="logo-fallback">DXF2NC1</span>
+    <div class="divider-v"></div>
+    <div>
+      <div class="app-name">NC1 Converter</div>
+      <div class="app-sub">DXF ke NC1 untuk program nesting</div>
+    </div>
+  </div>
+  <span class="badge">Internal Tool</span>
+</header>
+
+<main>
+
+  <!-- ── Left: Form ── -->
+  <div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Input File</span>
+        <span id="fileCount" style="font-size:11px;color:var(--muted);display:none"></span>
+      </div>
+      <div class="panel-body">
+
+        <!-- Drop zone -->
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".dxf" multiple>
+          <div class="dz-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="dz-label">Drag & drop file DXF</div>
+          <div class="dz-hint">atau klik untuk pilih — bisa pilih beberapa sekaligus</div>
+        </div>
+
+        <!-- File list -->
+        <div class="file-list" id="fileList"></div>
+
+        <!-- Parameters -->
+        <div class="field-row">
+          <div class="field">
+            <label for="thickness">Ketebalan (mm)</label>
+            <input type="number" id="thickness" name="thickness"
+                   placeholder="contoh: 16" min="1" max="200" step="0.5" required>
+          </div>
+          <div class="field">
+            <label for="grade">Grade</label>
+            <select id="grade" name="grade">
+              <option value="SS400">SS400</option>
+              <option value="SS490">SS490</option>
+              <option value="S235">S235</option>
+              <option value="S275">S275</option>
+              <option value="S355">S355</option>
+              <option value="A36">A36</option>
+              <option value="A572">A572</option>
+              <option value="BJ37">BJ37</option>
+              <option value="BJ41">BJ41</option>
+              <option value="BJ50">BJ50</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="qty">Jumlah (pcs)</label>
+            <input type="number" id="qty" name="qty" value="1" min="1" max="9999">
+          </div>
+          <div class="field">
+            <label for="project">Kode Proyek <span class="optional">opsional</span></label>
+            <input type="text" id="project" name="project" placeholder="contoh: PROJ-001">
+          </div>
+        </div>
+
+        <div class="global-error" id="globalError">
+          <svg style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;margin-top:1px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+          <span id="globalErrorMsg"></span>
+        </div>
+
+        <button class="btn-convert" id="btnConvert" onclick="runConvert()">
+          <div class="spinner" id="spinner"></div>
+          <svg id="btnIcon" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.5" viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span id="btnLabel">Convert ke NC1</span>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right: Results ── -->
+  <div class="result-panel" id="resultPanel">
+
+    <!-- Empty state -->
+    <div class="state-empty" id="stateEmpty">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <p>Hasil konversi akan muncul di sini</p>
+    </div>
+
+    <!-- Download all bar -->
+    <div class="dl-all-bar" id="dlAllBar">
+      <div class="dl-all-info">
+        <strong id="dlAllCount"></strong> file berhasil dikonversi
+      </div>
+      <a id="btnDlAll" class="btn-dl" href="#" download>
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Semua (.zip)
+      </a>
+    </div>
+
+    <!-- Cards container -->
+    <div id="cardsContainer"></div>
+
+  </div>
+</main>
+
+<footer>DXF2NC1 &mdash; NC1 Converter</footer>
+
+<script>
+// ── File management ──
+let selectedFiles = [];
+
+const fileInput   = document.getElementById('fileInput');
+const dropzone    = document.getElementById('dropzone');
+const fileList    = document.getElementById('fileList');
+const fileCount   = document.getElementById('fileCount');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragover');
+  addFiles(Array.from(e.dataTransfer.files));
+});
+fileInput.addEventListener('change', () => {
+  addFiles(Array.from(fileInput.files));
+  fileInput.value = '';
+});
+
+function addFiles(newFiles) {
+  newFiles.forEach(f => {
+    if (f.name.toLowerCase().endsWith('.dxf') &&
+        !selectedFiles.find(x => x.name === f.name)) {
+      selectedFiles.push(f);
+    }
+  });
+  renderFileList();
+}
+
+function removeFile(name) {
+  selectedFiles = selectedFiles.filter(f => f.name !== name);
+  renderFileList();
+}
+
+function renderFileList() {
+  fileList.innerHTML = '';
+  selectedFiles.forEach(f => {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip chip-dxf';
+    chip.innerHTML = `
+      <span class="chip-name">${f.name}</span>
+      <button class="chip-remove" onclick="removeFile('${f.name}')" title="Hapus">&times;</button>
+    `;
+    fileList.appendChild(chip);
+  });
+  if (selectedFiles.length > 0) {
+    fileCount.textContent = `${selectedFiles.length} file dipilih`;
+    fileCount.style.display = '';
+  } else {
+    fileCount.style.display = 'none';
+  }
+}
+
+// ── Convert ──
+async function runConvert() {
+  const globalError = document.getElementById('globalError');
+  globalError.classList.remove('show');
+
+  if (selectedFiles.length === 0) {
+    showGlobalError('Pilih minimal satu file DXF.'); return;
+  }
+  const thick = parseFloat(document.getElementById('thickness').value);
+  if (!thick || thick <= 0) {
+    showGlobalError('Masukkan ketebalan pelat (mm).'); return;
+  }
+
+  setLoading(true);
+
+  const formData = new FormData();
+  selectedFiles.forEach(f => formData.append('dxf_files', f));
+  formData.append('thickness', thick);
+  formData.append('grade',     document.getElementById('grade').value);
+  formData.append('qty',       document.getElementById('qty').value || 1);
+  formData.append('project',   document.getElementById('project').value || '');
+
+  try {
+    const resp = await fetch('/convert', { method: 'POST', body: formData });
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      showGlobalError(data.error || 'Terjadi kesalahan.'); return;
+    }
+
+    renderResults(data);
+  } catch (err) {
+    showGlobalError('Koneksi ke server gagal. Pastikan server berjalan.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderResults(data) {
+  const container = document.getElementById('cardsContainer');
+  const empty     = document.getElementById('stateEmpty');
+  const dlAllBar  = document.getElementById('dlAllBar');
+  container.innerHTML = '';
+  empty.style.display = 'none';
+
+  // Download all zip
+  if (data.zip_download && data.success_count > 1) {
+    document.getElementById('dlAllCount').textContent = data.success_count;
+    document.getElementById('btnDlAll').href = data.zip_download;
+    dlAllBar.classList.add('show');
+  } else {
+    dlAllBar.classList.remove('show');
+  }
+
+  data.results.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'result-card' + (r.error ? ' is-error' : '');
+
+    if (r.error) {
+      card.innerHTML = `
+        <div class="result-top">
+          <div class="result-status err">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+          <div class="result-name">
+            <div class="result-filename">${r.filename}</div>
+            <div class="result-orig">Gagal diproses</div>
+          </div>
+        </div>
+        <div class="error-msg">${r.error}</div>
+      `;
+    } else {
+      const pid = 'prev_' + Math.random().toString(36).slice(2);
+      card.innerHTML = `
+        <div class="result-top">
+          <div class="result-status ok">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="result-name">
+            <div class="result-filename">${r.filename}</div>
+            <div class="result-orig">dari ${r.original}</div>
+          </div>
+          <a class="btn-dl" href="${r.download}" download="${r.filename}">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </a>
+        </div>
+        <div class="stats-row">
+          <div class="stat"><div class="stat-label">Panjang</div><div class="stat-val">${r.length} mm</div></div>
+          <div class="stat"><div class="stat-label">Lebar</div><div class="stat-val">${r.width} mm</div></div>
+          <div class="stat"><div class="stat-label">Tebal</div><div class="stat-val">${r.thickness} mm</div></div>
+          <div class="stat"><div class="stat-label">Lubang</div><div class="stat-val">${r.holes}</div></div>
+        </div>
+        <button class="preview-toggle" id="tog_${pid}" onclick="togglePreview('${pid}')">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          Lihat preview NC1
+        </button>
+        <div class="preview-content" id="${pid}">
+          <pre>${escapeHtml(r.preview)}</pre>
+        </div>
+      `;
+    }
+    container.appendChild(card);
+  });
+}
+
+function togglePreview(pid) {
+  const content = document.getElementById(pid);
+  const toggle  = document.getElementById('tog_' + pid);
+  const open    = content.classList.toggle('open');
+  toggle.classList.toggle('open', open);
+  toggle.childNodes[toggle.childNodes.length - 1].textContent =
+    open ? ' Sembunyikan preview' : ' Lihat preview NC1';
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showGlobalError(msg) {
+  const box = document.getElementById('globalError');
+  document.getElementById('globalErrorMsg').textContent = msg;
+  box.classList.add('show');
+}
+
+function setLoading(on) {
+  const btn     = document.getElementById('btnConvert');
+  const spinner = document.getElementById('spinner');
+  const icon    = document.getElementById('btnIcon');
+  const label   = document.getElementById('btnLabel');
+  btn.disabled        = on;
+  spinner.style.display = on ? 'block' : 'none';
+  icon.style.display    = on ? 'none'  : 'block';
+  label.textContent     = on ? 'Mengkonversi...' : 'Convert ke NC1';
+}
+</script>
+</body>
+</html>
