@@ -510,54 +510,45 @@ footer {
         <div class="file-list" id="fileList"></div>
 
         <!-- Parameters -->
-        <div class="field-row">
-          <div class="field">
-            <label for="thickness">Ketebalan (mm)</label>
-            <input type="number" id="thickness" name="thickness"
-                   placeholder="contoh: 16" min="1" max="200" step="0.5" required>
-          </div>
-          <div class="field">
-            <label for="grade">Grade</label>
-            <select id="grade" name="grade">
-              <option value="SS400">SS400</option>
-              <option value="SS490">SS490</option>
-              <option value="S235">S235</option>
-              <option value="S275">S275</option>
-              <option value="S355">S355</option>
-              <option value="A36">A36</option>
-              <option value="A572">A572</option>
-              <option value="BJ37">BJ37</option>
-              <option value="BJ41">BJ41</option>
-              <option value="BJ50">BJ50</option>
-            </select>
-          </div>
+        <div class="field-row" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="field">
+          <label for="thickness">Ketebalan (mm)</label>
+          <input type="number" id="thickness" name="thickness"
+                placeholder="contoh: 16" min="1" max="200" step="0.5" required>
         </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label for="qty">Jumlah (pcs)</label>
-            <input type="number" id="qty" name="qty" value="1" min="1" max="9999">
-          </div>
-          <div class="field">
-            <label for="project">Kode Proyek <span class="optional">opsional</span></label>
-            <input type="text" id="project" name="project" placeholder="contoh: PROJ-001">
-          </div>
+        <div class="field">
+          <label for="grade">Grade</label>
+          <select id="grade" name="grade">
+            <option value="SS400">SS400</option>
+            <option value="SS490">SS490</option>
+            <option value="S235">S235</option>
+            <option value="S275">S275</option>
+            <option value="S355">S355</option>
+            <option value="A36">A36</option>
+            <option value="A572">A572</option>
+            <option value="BJ37">BJ37</option>
+            <option value="BJ41">BJ41</option>
+            <option value="BJ50">BJ50</option>
+          </select>
         </div>
-
-        <div class="global-error" id="globalError">
-          <svg style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;margin-top:1px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
-          <span id="globalErrorMsg"></span>
+        <div class="field">
+          <label for="qty">Jumlah (pcs)</label>
+          <input type="number" id="qty" name="qty" value="1" min="1" max="9999">
         </div>
-
-        <button class="btn-convert" id="btnConvert" onclick="runConvert()">
-          <div class="spinner" id="spinner"></div>
-          <svg id="btnIcon" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.5" viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          <span id="btnLabel">Convert ke NC1</span>
-        </button>
-
       </div>
-    </div>
-  </div>
+              <div class="global-error" id="globalError">
+                <svg style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;margin-top:1px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+                <span id="globalErrorMsg"></span>
+              </div>
+              <button class="btn-convert" id="btnConvert" onclick="runConvert()">
+                <div class="spinner" id="spinner"></div>
+                <svg id="btnIcon" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.5" viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span id="btnLabel">Convert ke NC1</span>
+              </button>
+
+            </div>
+          </div>
+        </div>
 
   <!-- ── Right: Results ── -->
   <div class="result-panel" id="resultPanel">
@@ -663,7 +654,6 @@ async function runConvert() {
   formData.append('thickness', thick);
   formData.append('grade',     document.getElementById('grade').value);
   formData.append('qty',       document.getElementById('qty').value || 1);
-  formData.append('project',   document.getElementById('project').value || '');
 
   try {
     const resp = await fetch('/convert', { method: 'POST', body: formData });

@@ -10,7 +10,7 @@ import uuid
 import zipfile
 from pathlib import Path
 from flask import (Flask, render_template, request,
-                   send_file, jsonify, after_this_request)
+                   send_file, jsonify, after_this_request, url_for)
 from converter import parse_dxf, build_nc1
 
 app = Flask(__name__)
@@ -50,7 +50,6 @@ def convert():
         return jsonify({'error': 'Ketebalan harus angka positif (mm).'}), 400
 
     grade   = request.form.get('grade', 'SS400').strip() or 'SS400'
-    project = request.form.get('project', '').strip()
     qty     = max(1, int(request.form.get('qty', 1) or 1))
 
     uid = uuid.uuid4().hex[:8]
@@ -85,7 +84,6 @@ def convert():
                 mark=piece_mark,
                 thickness=thickness,
                 grade=grade,
-                project=project,
                 qty=qty,
                 drawing_no=piece_mark,
             )
@@ -98,7 +96,7 @@ def convert():
                 'success'   : True,
                 'original'  : file.filename,
                 'filename'  : f"{stem}.nc1",
-                'download'  : f"/download/{nc1_name}",
+                'download'  : url_for('download', filename=nc1_name),
                 'mark'      : piece_mark,
                 'length'    : round(length, 2),
                 'width'     : round(width, 2),
@@ -130,7 +128,7 @@ def convert():
             for nc1_path, display_name in nc1_paths:
                 if nc1_path.exists():
                     zf.write(nc1_path, display_name)
-        zip_download = f"/download/{zip_name}"
+        zip_download = url_for('download', filename=zip_name)
 
     return jsonify({
         'results'      : results,
